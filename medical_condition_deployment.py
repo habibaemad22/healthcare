@@ -2,25 +2,34 @@
 import streamlit as st
 import pandas as pd
 import joblib
+from sklearn.model_selection import cross_validate
 from sklearn.preprocessing import LabelEncoder
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+import category_encoders as ce
+from sklearn.preprocessing import RobustScaler
+
 
 # Page configuration
 st.set_page_config(layout='wide', page_title='Medical Condition Prediction')
 
-# Add custom CSS
+# Add custom CSS for dark theme
 st.markdown(
     """
     <style>
     /* Body background */
     .stApp {
-        background-color: #f5f5f5;
+        background-color: #1e1e1e;  /* خلفية غامقة */
+        color: #ffffff;              /* نص أبيض */
         font-family: 'Segoe UI', sans-serif;
     }
 
     /* Title style */
     h1 {
         color: #ffffff;
-        background-color: #4CAF50;
+        background-color: #333333;  /* خلفية أغمق للعنوان */
         padding: 20px;
         border-radius: 10px;
         text-align: center;
@@ -28,9 +37,10 @@ st.markdown(
 
     /* Sidebar background */
     .css-1d391kg { 
-        background-color: #e8f5e9;
+        background-color: #2e2e2e;   /* خلفية غامقة للسايدبار */
         padding: 20px;
         border-radius: 10px;
+        color: #ffffff;
     }
 
     /* Buttons */
@@ -52,6 +62,8 @@ st.markdown(
     /* Inputs style */
     .stSlider, .stNumberInput, .stSelectbox, .stRadio {
         font-size: 16px;
+        color: #ffffff;                /* نص أبيض */
+        background-color: #3a3a3a;     /* خلفية Inputs غامقة */
     }
     </style>
     """, unsafe_allow_html=True
@@ -63,7 +75,7 @@ st.markdown(html_title, unsafe_allow_html=True)
 
 # Load cleaned data and trained model
 df = pd.read_csv('cleaned_data.csv', index_col=0)
-model = joblib.load('xgb.pkl')  # replace with your trained model file
+model = joblib.load('lr_model.pkl')  # replace with your trained model file
 
 # Prepare LabelEncoder to decode predicted class
 le = LabelEncoder()
