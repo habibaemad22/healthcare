@@ -2,18 +2,11 @@
 import streamlit as st
 import pandas as pd
 import joblib
-from sklearn.model_selection import cross_validate
 from sklearn.preprocessing import LabelEncoder
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
-import category_encoders as ce
-from sklearn.preprocessing import RobustScaler
 import plotly.express as px
 
 # Page configuration
-st.set_page_config(layout='wide', page_title='Medical Condition Prediction')
+st.set_page_config(layout='wide', page_title='Admission Type Prediction')
 
 # Custom dark theme CSS
 st.markdown("""
@@ -27,69 +20,71 @@ div.stButton > button:hover { background-color: #45a049; color: white; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1> Medical Condition Prediction Project </h1>", unsafe_allow_html=True)
+st.markdown("<h1> Admission Type Prediction Project </h1>", unsafe_allow_html=True)
 
 # Load data & model
 df = pd.read_csv('cleaned_data.csv', index_col=0)
 model = joblib.load('lr_model.pkl')
 
 le = LabelEncoder()
-y = df['Medical Condition']
+y = df['Admission_Type']
 le.fit(y)
 
 # Columns for input
-input_cols = ['Age', 'Gender', 'Blood Type', 'Insurance Provider', 'Billing Amount',
-              'Admission Type', 'Medication', 'Test Results', 'Length of Stay']
+input_cols = ['Age', 'Gender', 'Blood_Type', 'Insurance_Provider', "Medical_Condition",
+              'Billing_Amount', 'Medication', 'Test_Results', 'Length_of_Stay']
 
 # Tabs for Prediction & Analysis
 tab1, tab2 = st.tabs(["Prediction", "Analysis"])
 
 with tab1:
-    st.subheader("Predict Medical Condition")
-    # Sidebar / Input widgets
+    st.subheader("Predict Admission Type")
+    # Input widgets
     age = st.slider('Patient Age', int(df.Age.min()), int(df.Age.max()))
     gender = st.radio('Gender', df.Gender.unique())
-    blood_type = st.selectbox('Blood Type', df['Blood Type'].unique())
-    insurance = st.selectbox('Insurance Provider', df['Insurance Provider'].unique())
-    billing_amount = st.number_input('Billing Amount', float(df['Billing Amount'].min()), float(df['Billing Amount'].max()))
-    admission_type = st.selectbox('Admission Type', df['Admission Type'].unique())
+    blood_type = st.selectbox('Blood_Type', df['Blood_Type'].unique())
+    insurance = st.selectbox('Insurance_Provider', df['Insurance_Provider'].unique())
+    billing_amount = st.number_input('Billing_Amount', float(df['Billing_Amount'].min()), float(df['Billing_Amount'].max()))
+    admission_type = st.selectbox('Admission_Type', df['Admission_Type'].unique())
     medication = st.selectbox('Medication', df['Medication'].unique())
-    test_results = st.selectbox('Test Results', df['Test Results'].unique())
-    length_of_stay = st.number_input('Length of Stay (days)', int(df['Length of Stay'].min()), int(df['Length of Stay'].max()))
+    test_results = st.selectbox('Test_Results', df['Test_Results'].unique())
+    length_of_stay = st.number_input('Length_of_Stay (days)', int(df['Length_of_Stay'].min()), int(df['Length_of_Stay'].max()))
 
-    new_data = pd.DataFrame([[age, gender, blood_type, insurance, billing_amount,
-                              admission_type, medication, test_results, length_of_stay]],
+    new_data = pd.DataFrame([[age, gender, blood_type, insurance, "Medical_Condition",
+                              billing_amount, medication, test_results, length_of_stay]],
                             columns=input_cols)
 
-    if st.button('Predict Medical Condition'):
+    if st.button('Predict Admission Type'):
         pred_encoded = model.predict(new_data)[0]
         pred_label = le.inverse_transform([pred_encoded])[0]
-        st.write(f'Predicted Medical Condition: **{pred_label}**')
+        st.write(f'Predicted Admission Type: **{pred_label}**')
 
 with tab2:
     st.subheader("Exploratory Analysis")
 
-    # 1️⃣ Age and Gender distribution per Medical Condition
-    fig1 = px.box(df, x='Medical Condition', y='Age', color='Gender',
-                  title='Age and Gender Distribution per Medical Condition')
+    # 1️⃣ Number of Patients per Admission_Type
+    count_df = df['Admission_Type'].value_counts().reset_index()
+    count_df.columns = ['Admission_Type', 'Count']
+    fig1 = px.bar(count_df,
+                  x='Admission_Type', 
+                  y='Count',
+                  title='Number of Patients per Admission_Type')
     st.plotly_chart(fig1, use_container_width=True)
 
-    # 2️⃣ Length of Stay per Medical Condition and Admission Type
-    fig2 = px.box(df, x='Medical Condition', y='Length of Stay', color='Admission Type',
-                  title='Length of Stay per Medical Condition and Admission Type')
+    # 2️⃣ Average Length_of_Stay per Admission_Type
+    avg_stay = df.groupby('Admission_Type')['Length_of_Stay'].mean().reset_index()
+    fig2 = px.bar(avg_stay, x='Admission_Type', y='Length_of_Stay',
+                  title='Average Length_of_Stay per Admission_Type')
     st.plotly_chart(fig2, use_container_width=True)
 
-    # 3️⃣ Medication and Billing Amount per Medical Condition (Treemap)
-    fig3 = px.treemap(df, path=['Medical Condition', 'Medication'], values='Billing Amount',
-                      title='Medication and Billing Amount per Medical Condition')
+    # 3️⃣ Average Billing_Amount per Admission_Type
+    avg_bill = df.groupby('Admission_Type')['Billing_Amount'].mean().reset_index()
+    fig3 = px.bar(avg_bill, x='Admission_Type', y='Billing_Amount',
+                  title='Average Billing_Amount per Admission_Type')
     st.plotly_chart(fig3, use_container_width=True)
 
-    # 4️⃣ Age vs Medical Condition (with all points)
-    fig_age = px.box(df, x='Medical Condition', y='Age', color='Medical Condition',
-                     title='Age Distribution per Medical Condition', points='all')
-    st.plotly_chart(fig_age, use_container_width=True)
-
-    # 5️⃣ Length of Stay vs Medical Condition (with all points)
-    fig_stay = px.box(df, x='Medical Condition', y='Length of Stay', color='Medical Condition',
-                      title='Length of Stay per Medical Condition', points='all')
-    st.plotly_chart(fig_stay, use_container_width=True)
+    # 4️⃣ Gender Distribution per Admission_Type
+    gender_count = df.groupby(['Admission_Type','Gender']).size().reset_index(name='Count')
+    fig4 = px.bar(gender_count, x='Admission_Type', y='Count', color='Gender', barmode='group',
+                  title='Gender Distribution per Admission_Type')
+    st.plotly_chart(fig4, use_container_width=True)
